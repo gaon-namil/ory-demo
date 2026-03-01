@@ -96,6 +96,34 @@ func main() {
 		http.Redirect(w, r, resp.RedirectTo, http.StatusFound)
 	})
 
+	mux.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		challenge := r.URL.Query().Get("logout_challenge")
+		if challenge == "" {
+			http.Error(w, "missing logout_challenge", http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+		defer cancel()
+
+		logoutReq, err := hydra.GetLogout(ctx, challenge)
+		if err != nil {
+			log.Printf("[logout] get error: %v", err)
+			http.Error(w, "logout get failed", http.StatusBadGateway)
+			return
+		}
+
+		resp, err := hydra.AcceptLogout(ctx, challenge)
+		if err != nil {
+			log.Printf("[logout] accept error: %v", err)
+			http.Error(w, "logout accept failed", http.StatusBadGateway)
+			return
+		}
+
+		log.Printf("[logout] accepted subject=%s redirect_to=%s", logoutReq.Subject, resp.RedirectTo)
+		http.Redirect(w, r, resp.RedirectTo, http.StatusFound)
+	})
+
 	// あると便利なデモ用: stateのダミー生成（後でGoアプリに移す）
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("login-consent-app: try /health, /login, /consent\nstate example: " + randomHex(8)))

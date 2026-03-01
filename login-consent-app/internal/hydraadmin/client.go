@@ -98,3 +98,35 @@ func (c *Client) AcceptConsent(ctx context.Context, challenge string, body Accep
 	}
 	return &out, nil
 }
+
+// Logout
+
+type LogoutRequest struct {
+	Subject string `json:"subject"`
+}
+
+func (c *Client) GetLogout(ctx context.Context, challenge string) (*LogoutRequest, error) {
+	q := url.Values{}
+	q.Set("logout_challenge", challenge)
+
+	var out LogoutRequest
+	if err := c.c.GetJSON(ctx, "/admin/oauth2/auth/requests/logout?"+q.Encode(), &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+type AcceptLogoutResponse struct {
+	RedirectTo string `json:"redirect_to"`
+}
+
+func (c *Client) AcceptLogout(ctx context.Context, challenge string) (*AcceptLogoutResponse, error) {
+	q := url.Values{}
+	q.Set("logout_challenge", challenge)
+
+	var out AcceptLogoutResponse
+	if err := c.c.PutJSON(ctx, "/admin/oauth2/auth/requests/logout/accept?"+q.Encode(), map[string]any{}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

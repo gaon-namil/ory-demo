@@ -24,6 +24,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    command: ["postgres", "-c", "timezone=Asia/Tokyo"]
 
   hydra-migrate:
     image: oryd/hydra:v2.2.0

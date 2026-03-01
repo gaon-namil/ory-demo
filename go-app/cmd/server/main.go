@@ -127,6 +127,30 @@ func main() {
 		http.Redirect(w, r, u.String(), http.StatusFound)
 	})
 
+	mux.HandleFunc("/api/logout", func(w http.ResponseWriter, r *http.Request) {
+		sess, _ := store.Get(r, "demo_session")
+		idTokenHint, _ := sess.Values["id_token"].(string)
+		sess.Options.MaxAge = -1 // cookie削除
+		_ = sess.Save(r, w)
+
+		if idTokenHint == "" {
+			http.Redirect(w, r, frontendHomeURL(cfg.VueAppURL), http.StatusFound)
+			return
+		}
+
+		u, _ := url.Parse(cfg.HydraPublicBrowser + "/oauth2/sessions/logout")
+		q := u.Query()
+		q.Set("id_token_hint", idTokenHint)
+		q.Set("post_logout_redirect_uri", logoutCallbackURL(cfg.BaseURL))
+		u.RawQuery = q.Encode()
+
+		http.Redirect(w, r, u.String(), http.StatusFound)
+	})
+
+	mux.HandleFunc("/api/logout/callback", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, frontendHomeURL(cfg.VueAppURL), http.StatusFound)
+	})
+
 	mux.HandleFunc("/api/callback", func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		state := r.URL.Query().Get("state")
@@ -205,6 +229,7 @@ func main() {
 
 		sub := tok.Subject()
 		sess.Values["sub"] = sub
+		sess.Values["id_token"] = idTokenStr
 		delete(sess.Values, "state")
 		delete(sess.Values, "nonce")
 		if err := sess.Save(r, w); err != nil {
@@ -284,6 +309,30 @@ func env(k, def string) string {
 		return v
 	}
 	return def
+}
+
+func frontendHomeURL(vueAppURL string) string {
+	u, err := url.Parse(vueAppURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return "http://localhost:5173/"
+	}
+	u.Path = "/"
+	u.RawPath = ""
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String()
+}
+
+func logoutCallbackURL(baseURL string) string {
+	u, err := url.Parse(baseURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return "http://localhost:8080/api/logout/callback"
+	}
+	u.Path = "/api/logout/callback"
+	u.RawPath = ""
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String()
 }
 
 // stringsReader avoids importing strings in a big way; minimal helper.

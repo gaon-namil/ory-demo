@@ -4,7 +4,8 @@ set -euo pipefail
 ADMIN_URL="${HYDRA_ADMIN_URL:-http://localhost:4445}"
 CLIENT_ID="${CLIENT_ID:-demo-client}"
 CLIENT_SECRET="${CLIENT_SECRET:-demo-secret}" # デモ用。本番ではSecret Storeへ。
-REDIRECT_URI="${REDIRECT_URI:-http://localhost:8080/callback}"
+REDIRECT_URI="${REDIRECT_URI:-http://localhost:8080/api/callback}"
+POST_LOGOUT_REDIRECT_URI="${POST_LOGOUT_REDIRECT_URI:-http://localhost:8080/api/logout/callback}"
 
 echo "Creating OAuth2 client..."
 curl -sS -X POST "${ADMIN_URL}/admin/clients" \
@@ -15,6 +16,7 @@ curl -sS -X POST "${ADMIN_URL}/admin/clients" \
     \"grant_types\": [\"authorization_code\", \"refresh_token\"],
     \"response_types\": [\"code\"],
     \"redirect_uris\": [\"${REDIRECT_URI}\"],
+    \"post_logout_redirect_uris\": [\"${POST_LOGOUT_REDIRECT_URI}\"],
     \"scope\": \"openid offline_access\",
     \"token_endpoint_auth_method\": \"client_secret_basic\"
   }" | jq .
