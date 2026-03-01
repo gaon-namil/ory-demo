@@ -1,4 +1,16 @@
 services:
+  login-consent:
+    build:
+      context: ./login-consent-app
+    environment:
+      HYDRA_ADMIN_URL: http://hydra:4445
+      DEMO_SUBJECT: user-001
+      ADDR: :3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      hydra:
+        condition: service_started
   postgres:
     image: postgres:16
     environment:
@@ -20,7 +32,7 @@ services:
         condition: service_healthy
     environment:
       DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-    command: migrate sql -e --yes
+    command: ["migrate", "sql", "-e", "--yes"]
     restart: "no"
 
   hydra:
@@ -44,4 +56,4 @@ services:
       OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${HYDRA_PAIRWISE_SALT}
 
       LOG_LEVEL: debug
-    command: serve all --dev
+    command: ["serve", "all", "--dev"]
